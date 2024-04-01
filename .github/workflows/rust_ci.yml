@@ -1,0 +1,63 @@
+name: Continuous Integration
+
+on:
+  push:
+    paths-ignore:
+      - "**/README.md"
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  rust-checks:
+    name: Rust Checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        action:
+          - command: build
+            args: --release
+          - command: fmt
+            args: --all -- --check --color always
+          - command: clippy
+            args: --all-targets --all-features --workspace -- -D warnings
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract the list of changes from git
+        id: extract_changes
+        run: |
+          # get the list of changes from the current branch
+          ROOTFOLDERS="$(git diff origin/${{GITHUB.BASE_REF}}..origin/${{GITHUB.HEAD_REF}} --name-only --relative --diff-filter=AMCR | cut -d'/' -f1 | sort -u)"
+          # print the list of changes
+          echo "::group::Changes"
+          echo "List of changes: $ROOTFOLDERS"
+          # set the environment variable with the list of changes
+          echo "ROOTFOLDERS<<EOF" >> $GITHUB_ENV
+          echo $ROOTFOLDERS >> $GITHUB_ENV 
+          echo "EOF" >> $GITHUB_ENV
+          echo "::endgroup::"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+          components: rust-src
+
+      - name: Enable caching
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run command
+        run: |
+          for folder in $ROOTFOLDERS; do
+            if [ -f $folder/Cargo.toml ]; then
+              echo "::group::Running cargo ${{ matrix.action.command }} ${{ matrix.action.args }} in $folder"
+              cargo ${{ matrix.action.command }} ${{ matrix.action.args }} --target-dir ./$folder/
+              echo "::endgroup::"
+            fi
+          done
