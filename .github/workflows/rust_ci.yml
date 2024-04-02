@@ -34,7 +34,7 @@ jobs:
         id: extract_changes
         run: |
           # get the list of changes from the current branch
-          ROOTFOLDERS="$(git diff origin/${{ github.base_ref }}..origin/${{ github.sha }} --name-only --relative --diff-filter=AMCR | cut -d'/' -f1 | sort -u)"
+          ROOTFOLDERS="$(git diff origin/${{ github.base_ref }}..origin/${{ github.head_ref }} --name-only --relative --diff-filter=AMCR | cut -d'/' -f1 | sort -u)"
           # print the list of changes
           echo "::group::Changes"
           echo "List of changes: $ROOTFOLDERS"
