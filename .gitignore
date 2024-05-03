@@ -16,3 +16,8 @@ Cargo.lock
 *.pdb
 /dist
 **/dist
+
+/.vscode
+/.embuild
+/target
+/Cargo.lock
